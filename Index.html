@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jay Span – STP-360 Operations Dashboard</title>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1b2437}
+header{background:linear-gradient(120deg,#032D60 0%,#0176D3 100%);color:#fff;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo h1{font-size:1.25rem;font-weight:700}
+.logo p{font-size:.75rem;opacity:.7;margin-top:2px}
+.upload-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;white-space:nowrap}
+.upload-btn:hover{background:rgba(255,255,255,.25)}
+.upload-btn input{display:none}
+#file-label{font-size:.72rem;opacity:.65;margin-top:2px;text-align:right}
+.tab-bar{background:#032D60;padding:0 32px;display:flex;gap:4px;overflow-x:auto}
+.tab-btn{padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.6);font-size:.83rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.tab-btn:hover{color:#fff}
+.tab-btn.active{color:#fff;border-bottom-color:#4BC9F0}
+.container{max-width:1400px;margin:0 auto;padding:24px 32px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:4px solid}
+.kpi:nth-child(1){border-color:#0176D3}.kpi:nth-child(2){border-color:#2E844A}.kpi:nth-child(3){border-color:#BA0517}.kpi:nth-child(4){border-color:#FF8000}.kpi:nth-child(5){border-color:#7B68EE}
+.kpi-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7a99;margin-bottom:7px}
+.kpi-val{font-size:1.9rem;font-weight:800;line-height:1;color:#032D60}
+.kpi-sub{font-size:.72rem;color:#a0aec0;margin-top:4px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:20px}
+.card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card.full{grid-column:1/-1}
+.card-title{font-size:.88rem;font-weight:700;color:#032D60;margin-bottom:14px}
+.chart-wrap{position:relative;height:250px}
+.chart-wrap.tall{height:300px}
+.tbl-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{background:#F3F7FF;padding:8px 11px;text-align:left;font-weight:700;color:#032D60;border-bottom:2px solid #d0ddef;white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:7px 11px;border-bottom:1px solid #f0f4f8;white-space:nowrap}
+tr:hover td{background:#f8fbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.bg{background:#EAFAF0;color:#2E844A}.by{background:#FFF9E6;color:#A87B00}.br{background:#FFF0F0;color:#BA0517}
+.ba{background:#FFF4E5;color:#C2631A}.be{background:#EEF2FF;color:#4A5AE8}.bn{background:#F0F0F0;color:#6b7a99}
+.bb{background:#E8F4FF;color:#0176D3}.bp{background:#F5F0FF;color:#7B68EE}
+.prog-bar{height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:5px}
+.prog-fill{height:100%;border-radius:4px}
+.util-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.util-name{font-size:.78rem;width:155px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.util-bar{flex:1;height:13px;background:#e8f0fb;border-radius:5px;overflow:hidden;position:relative}
+.util-fill{height:100%;border-radius:5px}
+.util-tline{width:2px;background:#BA0517;position:absolute;top:0;bottom:0}
+.util-pct{font-size:.72rem;width:40px;text-align:right;font-weight:700;color:#032D60}
+.ds-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.ds-table th,.ds-table td{padding:7px 10px;border:1px solid #e2e8f0;text-align:center}
+.ds-table th{background:#032D60;color:#fff;font-weight:700}
+.ds-table .rc{text-align:left;font-weight:700;background:#F3F7FF;color:#032D60}
+.ds-table .dem{background:#E8F4FF}.ds-table .sup{background:#EAFAF0}
+.ds-table .gp{background:#EAFAF0;color:#2E844A;font-weight:700}.ds-table .gn{background:#FFF0F0;color:#BA0517;font-weight:700}.ds-table .gz{background:#F0F0F0;color:#6b7a99;font-weight:700}
+.note{font-size:.72rem;color:#a0aec0;margin-top:8px}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.container{padding:14px}.tab-bar{padding:0 14px}header{padding:12px 16px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">&#x1F4CA;</div>
+    <div>
+      <h1>Jay Span &mdash; STP-360 Operations Dashboard</h1>
+      <p>GDC Delivery Operations &nbsp;|&nbsp; Life Sciences &amp; Consumer Goods Cloud</p>
+    </div>
+  </div>
+  <div style="text-align:right">
+    <label class="upload-btn" onclick="document.getElementById('xl-input').click()">
+      &#x1F504; Update from Excel
+      <input type="file" id="xl-input" accept=".xlsx,.xls" onchange="loadExcel(event)">
+    </label>
+    <div id="file-label">Using built-in data &mdash; drop updated .xlsx to refresh</div>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('utilization',this)">Utilization</button>
+  <button class="tab-btn" onclick="showTab('bench',this)">Bench</button>
+  <button class="tab-btn" onclick="showTab('demand',this)">Demand &amp; Supply</button>
+  <button class="tab-btn" onclick="showTab('presales',this)">Presales</button>
+  <button class="tab-btn" onclick="showTab('enablement',this)">Enablement</button>
+  <button class="tab-btn" onclick="showTab('mcc',this)">MCC Levels</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="tab-overview" class="tab-panel active"><div class="container">
+  <div class="kpi-row" id="kpi-overview"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F7E2; Project Health (PSA)</div><div class="chart-wrap"><canvas id="healthPie"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F4CB; Consultant Status</div><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Manager</th><th>PSA Health</th><th>GDC Health</th></tr></thead><tbody id="cons-tbody"></tbody></table></div></div>
+  </div>
+  <div class="card"><div class="card-title">&#x1F4C8; FY27 Quarterly Utilization</div><div class="chart-wrap"><canvas id="qtrChart"></canvas></div></div>
+</div></div>
+
+<!-- UTILIZATION -->
+<div id="tab-utilization" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-util"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F4CA; Utilization % by Quarter</div><div class="chart-wrap"><canvas id="utilQtrBar"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F3AF; Attainment % by Quarter</div><div class="chart-wrap"><canvas id="attainChart"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F9D1;&#x200D;&#x1F4BB; Individual Utilization vs 74% Target</div><div id="util-bars"></div><p class="note">Red line = target. Source: Tableau Utilization Report.</p></div>
+  <div class="card full" style="margin-top:18px"><div class="card-title">&#x1F4CB; Utilization Detail</div><div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Practice</th><th>Job Family</th><th>% Billable+Credited</th><th>Target</th><th>Attainment</th><th>Forecast Attainment</th></tr></thead><tbody id="util-tbody"></tbody></table></div></div>
+</div></div>
+
+<!-- BENCH -->
+<div id="tab-bench" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-bench"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F465; Bench by Job Grade</div><div class="chart-wrap"><canvas id="benchGrade"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F4C5; Roll-offs by Month</div><div class="chart-wrap"><canvas id="benchTimeline"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F4CB; 30-Day Bench Report</div><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Full Name</th><th>Assignment</th><th>Reporting Manager</th><th>End Date</th><th>Grade</th></tr></thead><tbody id="bench-tbody"></tbody></table></div></div>
+</div></div>
+
+<!-- DEMAND SUPPLY -->
+<div id="tab-demand" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-demand"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F4CA; Demand vs Supply by Month</div><div class="chart-wrap tall"><canvas id="dsChart"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x2696;&#xFE0F; Monthly Gap (Supply &minus; Demand)</div><div class="chart-wrap tall"><canvas id="gapChart"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F4CB; Demand &amp; Supply by Role</div><div id="ds-table-wrap"></div></div>
+</div></div>
+
+<!-- PRESALES -->
+<div id="tab-presales" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-presales"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F4B0; Pipeline Value by Customer</div><div class="chart-wrap"><canvas id="presalesBar"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F30D; Opportunities by Region</div><div class="chart-wrap"><canvas id="regionPie"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F4CB; Presales Activity Log</div><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Customer</th><th>Value</th><th>Region</th><th>Cloud</th><th>Stage</th><th>Quarter</th><th>Status</th><th>Architect</th></tr></thead><tbody id="presales-tbody"></tbody></table></div></div>
+</div></div>
+
+<!-- ENABLEMENT -->
+<div id="tab-enablement" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-enable"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F3C6; Completion Status</div><div class="chart-wrap"><canvas id="enableStatus"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F4DA; Enrollment by Track</div><div class="chart-wrap"><canvas id="enableTrack"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F4CB; Enablement Tracker</div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Manager</th><th>Track</th><th>Batch</th><th>Duration</th><th>Status</th><th>Score</th></tr></thead><tbody id="enable-tbody"></tbody></table></div></div>
+</div></div>
+
+<!-- MCC -->
+<div id="tab-mcc" class="tab-panel"><div class="container">
+  <div class="kpi-row" id="kpi-mcc"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">&#x1F3C5; MCC Level Distribution</div><div class="chart-wrap"><canvas id="mccLevel"></canvas></div></div>
+    <div class="card"><div class="card-title">&#x1F527; Top Missing Certifications</div><div class="chart-wrap"><canvas id="missingCerts"></canvas></div></div>
+  </div>
+  <div class="card full"><div class="card-title">&#x1F4CB; MCC Detail by Consultant</div><div class="tbl-wrap"><table><thead><tr><th>Manager</th><th>Name</th><th>Designation</th><th>Practice</th><th>MCC Level</th><th>L1 Missing Cert</th></tr></thead><tbody id="mcc-tbody"></tbody></table></div></div>
+</div></div>
+
+<script>
+// ══════ DEFAULT DATA ══════
+
+let DATA = {
+  consultants: [
+    {no:1,manager:'Ruchita Wakchoure',name:'Akshay Sinha',project:'Mars - Snacking - TPM Accruals/Claims Build',psa:'exempt',gdc:'exempt'},
+    {no:2,manager:'Ruchita Wakchoure',name:'Anshita Baheti',project:'VFZ - Services - Project Camper',psa:'green',gdc:'green'},
+    {no:3,manager:'Ruchita Wakchoure',name:'Archana A P',project:'Mars - Snacking - REx Global Expansion',psa:'exempt',gdc:'exempt'},
+    {no:4,manager:'Ruchita Wakchoure',name:'Kaustubh Khairnar',project:'Eniro - Horizon 1&2 Project Recovery',psa:'na',gdc:'na'},
+    {no:5,manager:'Ruchita Wakchoure',name:'Kartik Laad',project:'Mahindra Finance LOS CO May FY27',psa:'green',gdc:'green'},
+    {no:6,manager:'Ruchita Wakchoure',name:'Leelakiran Vemula',project:'McKinsey Activate Year 3 Extension',psa:'yellow',gdc:'green'},
+    {no:7,manager:'Ruchita Wakchoure',name:'PoornaChandra Indla',project:'McKinsey Activate Year 3 Extension',psa:'yellow',gdc:'green'},
+    {no:8,manager:'Ruchita Wakchoure',name:'Priyanka Khare',project:'State MT Child Services CO2',psa:'yellow',gdc:'na'},
+    {no:9,manager:'Ruchita Wakchoure',name:'Rahul Ahuja',project:'Marathon - Community Portal Redesign',psa:'na',gdc:'na'},
+    {no:10,manager:'Ruchita Wakchoure',name:'Rahul Jiyani',project:'MetLife - Sales & Service C360',psa:'yellow',gdc:'green'},
+    {no:11,manager:'Ruchita Wakchoure',name:'Ravi Bhushan Gupta',project:'BofA - Merrill E-Comm BAU Support',psa:'green',gdc:'green'},
+    {no:12,manager:'Ruchita Wakchoure',name:'Samiksha Dhabekar',project:'Gigaclear - BGL-2.1 and 2026',psa:'red',gdc:'amber'},
+    {no:13,manager:'Ruchita Wakchoure',name:'Shanmukha Bhimavarapu',project:'Marriott - Loyalty Management Platform',psa:'yellow',gdc:'amber'},
+    {no:14,manager:'Ruchita Wakchoure',name:'Siddhant Aggarwal',project:'Insulet Corporation - NextGenCRM',psa:'yellow',gdc:'green'},
+    {no:15,manager:'Ruchita Wakchoure',name:'Vijay krishnaa Veerakumar',project:'Mars - Snacking - REx Global Expansion',psa:'exempt',gdc:'exempt'},
+    {no:16,manager:'Jay Ram Chandra',name:'Abhishek Singh Solanki',project:'Mökah AG - Revenue Cloud Implementation',psa:'na',gdc:'green'},
+    {no:17,manager:'Jay Ram Chandra',name:'Navia Garg',project:'Lennar - Agentic Enterprise implementation',psa:'yellow',gdc:'green'},
+    {no:18,manager:'Jay Ram Chandra',name:'Prabakaran Murugesan',project:'Australian Unity Accelerate Program',psa:'green',gdc:'green'},
+    {no:19,manager:'Jay Ram Chandra',name:'Priyanka Gummuluru',project:'UKI - GSK - Patient Services Team',psa:'green',gdc:'green'},
+    {no:20,manager:'Jay Ram Chandra',name:'Ruchita Shashikant Wakchoure',project:'Mahindra Finance LOS CO May FY27',psa:'green',gdc:'green'},
+    {no:21,manager:'Jay Ram Chandra',name:'Sharath Srinivasa',project:'Chiesi - MVP Implementation Project',psa:'yellow',gdc:'green'},
+  ],
+  utilQuarterly: [
+    {q:'Q1-27',status:'Actual',util:84.1,attain:116.3},
+    {q:'Q2-27',status:'Actual+Forecast',util:74.9,attain:103.8},
+    {q:'Q3-27',status:'Forecast',util:42.9,attain:59.5},
+    {q:'Q4-27',status:'Forecast',util:22.7,attain:31.4},
+    {q:'Full Year',status:'Total Forecast',util:55.9,attain:77.4},
+  ],
+  utilIndividual: [
+    {id:'778663',name:'Arpit Pittie',practice:'Industries - Health',jobFamily:'Technical Consulting',billable:83.8,target:74,attain:113.2,forecastAttain:51.5},
+    {id:'790028',name:'Valli Mariappan',practice:'Industries - Health',jobFamily:'Technical Consulting',billable:68.8,target:74,attain:92.9,forecastAttain:69.1},
+    {id:'817021',name:'Subhasmita Kar',practice:'Industries - Financial Services',jobFamily:'Quality Assurance',billable:84.1,target:74,attain:113.6,forecastAttain:125.9},
+    {id:'821904',name:'PoornaChandra Indla',practice:'Industries - Financial Services',jobFamily:'Quality Assurance',billable:85.0,target:74,attain:114.9,forecastAttain:52.5},
+    {id:'822159',name:'Aman Singh',practice:'Industries - Financial Services',jobFamily:'Technical Consulting',billable:94.4,target:74,attain:127.5,forecastAttain:58.3},
+    {id:'827507',name:'Ravi Bhushan Gupta',practice:'Industries - Financial Services',jobFamily:'Quality Assurance',billable:93.4,target:74,attain:126.3,forecastAttain:129.3},
+    {id:'832624',name:'Resitha S',practice:'Industries - Communications',jobFamily:'Quality Assurance',billable:90.7,target:74,attain:122.5,forecastAttain:67.8},
+    {id:'832694',name:'Shrutika Sugandhi',practice:'Industries - Health',jobFamily:'Technical Consulting',billable:65.0,target:74,attain:87.8,forecastAttain:114.9},
+    {id:'837470',name:'Abhishek Singh Solanki',practice:'Industries - Consumer Goods',jobFamily:'Technical Consulting',billable:86.3,target:25,attain:345.0,forecastAttain:275.4},
+    {id:'837488',name:'Shashi Poonia',practice:'Industries - Automotive',jobFamily:'Quality Assurance',billable:91.3,target:74,attain:123.3,forecastAttain:95.1},
+    {id:'837516',name:'Tanushree Sharma',practice:'Industries - Financial Services',jobFamily:'Quality Assurance',billable:87.5,target:74,attain:118.2,forecastAttain:61.9},
+    {id:'837532',name:'Subhash Khandelwal',practice:'Industries - Communications',jobFamily:'Technical Consulting',billable:91.9,target:74,attain:124.2,forecastAttain:68.3},
+  ],
+  bench: [
+    {no:1,name:'Navia Garg',assignment:'Lennar - Agentic Enterprise',manager:'Jay Ram Chandran',endDate:'May 31, 2026',grade:7},
+    {no:2,name:'Ruchita Shashikant Wakchoure',assignment:'Mahindra Finance LOS CO May FY27',manager:'Jay Ram Chandran',endDate:'May 17, 2026',grade:7},
+    {no:3,name:'Abhishek Singh Solanki',assignment:'Mökah AG - Revenue Cloud',manager:'Jay Ram Chandran',endDate:'May 5, 2026',grade:8},
+    {no:4,name:'Priyanka Gummuluru',assignment:'UKI - GSK - Patient Services',manager:'Jay Ram Chandran',endDate:'May 30, 2026',grade:7},
+    {no:5,name:'Aman Singh',assignment:'Sammons - CSM Fast Follow',manager:'Navia Garg',endDate:'May 19, 2026',grade:5},
+    {no:6,name:'Aman Singh',assignment:'Sammons - QAC Ext CO',manager:'Navia Garg',endDate:'Jun 17, 2026',grade:5},
+    {no:7,name:'Deepika Sharma',assignment:'CSG PTT Org Design and Migration',manager:'Navia Garg',endDate:'May 12, 2026',grade:6},
+    {no:8,name:'Prashant Kumar',assignment:'SharkNinja - Service Cloud Transformation',manager:'Navia Garg',endDate:'May 19, 2026',grade:6},
+    {no:9,name:'Deepika Joshi',assignment:'Mars - Snacking - REx Global Expansion',manager:'Navia Garg',endDate:'May 12, 2026',grade:6},
+    {no:10,name:'Gaurav Kumar Singh',assignment:'WSV - WO32 - CSMI',manager:'Navia Garg',endDate:'May 11, 2026',grade:6},
+    {no:11,name:'Shubham Dhirendra',assignment:'WSV - WO32 - CSMI',manager:'Navia Garg',endDate:'May 11, 2026',grade:6},
+    {no:12,name:'PoornaChandra Indla',assignment:'McKinsey Activate Year 3 Extension',manager:'Ruchita Shashikant Wakchoure',endDate:'Jun 9, 2026',grade:6},
+    {no:13,name:'Priyanka Khare',assignment:'State MT Child Services - CO2',manager:'Ruchita Shashikant Wakchoure',endDate:'May 12, 2026',grade:5},
+    {no:14,name:'Archana A P',assignment:'Mars - REx Global - US - QA',manager:'Ruchita Shashikant Wakchoure',endDate:'Apr 28, 2026',grade:5},
+    {no:15,name:'Kaustubh Khairnar',assignment:'Eniro - Horizon 1&2 Recovery',manager:'Ruchita Shashikant Wakchoure',endDate:'May 20, 2026',grade:5},
+    {no:16,name:'Leelakiran Vemula',assignment:'McKinsey Activate Year 3 Extension',manager:'Ruchita Shashikant Wakchoure',endDate:'Jun 9, 2026',grade:5},
+    {no:17,name:'Siddhant Aggarwal',assignment:'Insulet Corporation - NextGenCRM',manager:'Ruchita Shashikant Wakchoure',endDate:'May 21, 2026',grade:5},
+    {no:18,name:'Kartik Laad',assignment:'Mahindra Finance LOS CO April FY27',manager:'Ruchita Shashikant Wakchoure',endDate:'Apr 27, 2026',grade:5},
+    {no:19,name:'Kartik Laad',assignment:'Mahindra Finance LOS CO May FY27',manager:'Ruchita Shashikant Wakchoure',endDate:'May 17, 2026',grade:5},
+    {no:20,name:'Rahul Ahuja',assignment:'Marathon - Community Portal Redesign',manager:'Ruchita Shashikant Wakchoure',endDate:'May 14, 2026',grade:6},
+    {no:21,name:'Shreya Parakh',assignment:'Daikin Program Extension (CO2)',manager:'Suresh Nankani',endDate:'Apr 28, 2026',grade:5},
+    {no:22,name:'Shreya Parakh',assignment:'Daikin CO3',manager:'Suresh Nankani',endDate:'Jun 3, 2026',grade:5},
+    {no:23,name:'Chandra Jayashree',assignment:'AFLAC - BPE DM',manager:'Suresh Nankani',endDate:'May 26, 2026',grade:6},
+    {no:24,name:'Sangeetha S',assignment:'REX NA',manager:'Suresh Nankani',endDate:'Jun 17, 2026',grade:5},
+    {no:25,name:'Bethineedi Venkata Sai Teja',assignment:'AFLAC - BPE CE',manager:'Suresh Nankani',endDate:'Jun 3, 2026',grade:5},
+    {no:26,name:'Pallavi Kaparthi',assignment:'Pfizer - LSC Digital Transformation',manager:'Suresh Nankani',endDate:'May 5, 2026',grade:5},
+  ],
+  demandSupply: {
+    months:["May '26","Jun '26","Jul '26","Aug '26","Sep '26","Oct '26","Nov '26"],
+    roles:['TA','TC','STC','SC','SA','SSA','STA'],
+    demand:[[1,6,1,4,2,2,1],[3,14,3,4,5,9,2],[0,7,2,2,2,2,1],[0,0,0,0,0,0,0],[0,2,0,0,2,0,0],[0,0,0,0,0,0,0],[1,1,0,0,0,0,0]],
+    supply:[[4,0,0,2,0,0,0],[1,8,3,7,0,0,0],[3,10,2,5,1,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,1,0,0]],
+    totDemand:[5,30,6,10,11,13,4],
+    totSupply:[8,18,5,14,2,0,0],
+    gap:[3,-12,-1,4,-9,-13,-4],
+  },
+  presales: [
+    {no:1,customer:'Tanabe Pharma',value:353964,region:'APAC JAPAN',cloud:'LSC',stage:'Stage 4',quarter:'Q1',status:'Lost',arch:'Vineel/ Rama'},
+    {no:2,customer:"L'Oreal USA S/D, Inc.",value:547200,region:'AMER ACC',cloud:'LSC',stage:'Stage 2',quarter:'Q1',status:'In-Progress',arch:'Udit/ Rama/ Prabha'},
+    {no:3,customer:'Chiesi - MVP Implementation Project',value:6312367,region:'EMEA South',cloud:'LSC',stage:'Stage 3',quarter:'Q1',status:'Deal Won',arch:'Vineel/Sharath'},
+    {no:4,customer:'Campari RFI',value:0,region:'EMEA South',cloud:'Consumer Goods REX',stage:'—',quarter:'Q1',status:'Completed',arch:'Pooja Murthy'},
+    {no:5,customer:'Zuellig Pharma',value:0,region:'ASEAN ASIA',cloud:'LSC',stage:'Stage 3',quarter:'Q2',status:'In-Progress',arch:'Prabakaran M / Hari N'},
+    {no:6,customer:'Handok',value:46800,region:'ASEAN ASIA',cloud:'LSC',stage:'Stage 4',quarter:'Q1',status:'In-Progress',arch:'Vineel, Jayalakshmi'},
+    {no:7,customer:'UCB',value:0,region:'EMEA North',cloud:'LSC',stage:'Stage 1',quarter:'Q1',status:'In-Progress',arch:'Hari N / Sharath S'},
+  ],
+  enablement: [
+    {name:'Lokesh P',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Batch 1',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Rahul Das',role:'Technical Consultant',manager:'Abhishek Singh Solanki',track:'Financial Services Cloud',batch:'Batch 1',duration:'6 weeks',status:'Completed',score:1.0},
+    {name:'Bijayalaxmi Prusty',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Batch 1',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Sahil Bahadure',role:'Technical Consultant',manager:'Abhishek Singh Solanki',track:'Manufacturing Cloud',batch:'Batch 2',duration:'6 weeks',status:'Completed',score:1.0},
+    {name:'Bhawani Singh',role:'Technical Consultant',manager:'Abhishek Singh Solanki',track:'Manufacturing Cloud',batch:'Batch 2',duration:'6 weeks',status:'Completed',score:1.0},
+    {name:'Gagandeep Singh',role:'Senior Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Shrutika Sugandhi',role:'Senior Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Sanket Vidhate',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Shubham Dhanuka',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Deepak Kumar',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Aniket Sharma',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Debak Sen',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Sourav Jain',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Life Sciences Cloud',batch:'Life Sciences',duration:'8 weeks',status:'Completed',score:1.0},
+    {name:'Himang Singh Solanki',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'Consumer Goods',batch:'Batch 3',duration:'3 weeks',status:'Opted Out',score:0.8},
+    {name:'Subhash Khandelwal',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'Consumer Goods',batch:'Batch 3',duration:'3 weeks',status:'Completed',score:1.0},
+    {name:'Nagashree S',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'Consumer Goods',batch:'New Hire',duration:'—',status:'Completed',score:1.0},
+    {name:'Shilpakala Ramachandra',role:'Manager, Technical Consulting',manager:'Jay Ram Chandran',track:'Consumer Goods',batch:'New Hire',duration:'—',status:'Completed',score:1.0},
+    {name:'Pratigya Suri',role:'Manager, Technical Consulting',manager:'Jay Ram Chandran',track:'Consumer Goods',batch:'New Hire',duration:'—',status:'Completed',score:1.0},
+    {name:'Yatin Kapur',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'B2B',batch:'Internal',duration:'4-6 Weeks',status:'Opted Out',score:0.3},
+    {name:'Rakshit Kumar (REX)',role:'Technical Consultant',manager:'Priyanka Gummuluru',track:'Consumer Goods',batch:'Existing Emp',duration:'4 weeks',status:'Completed',score:1.0},
+    {name:'Sanjay Bochalya (TPM)',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'Consumer Goods',batch:'Existing Emp',duration:'4 weeks',status:'In Progress',score:0.8},
+    {name:'Valli Mariappan (REX)',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Consumer Goods',batch:'Ad-Hoc',duration:'3 weeks',status:'Completed',score:1.0},
+    {name:'Gaurav Kumar Singh',role:'Senior Technical Consultant',manager:'Navia Garg',track:'Public Sector',batch:'Existing Emp',duration:'3 weeks',status:'In Progress',score:0.7},
+    {name:'Vinay Kumar Todupunuri (REX)',role:'Senior Technical Consultant',manager:'Abhishek Singh Solanki',track:'Consumer Goods',batch:'Existing Emp',duration:'3 weeks',status:'Completed',score:1.0},
+    {name:'Karthik Naganathan',role:'Technical Consultant',manager:'Prabakaran Murugesan',track:'Public Sector',batch:'Existing Emp',duration:'3 weeks',status:'In Progress',score:0.7},
+    {name:'Asif Raza',role:'Senior Technical Consultant',manager:'Priyanka Gummuluru',track:'Public Sector',batch:'Existing Emp',duration:'3 weeks',status:'In Progress',score:0.7},
+    {name:'Arshdeep Kaur Jaggi (TPM)',role:'Senior Technical Consultant',manager:'Shilpakala Ramachandra',track:'Consumer Goods',batch:'Existing Emp',duration:'3 weeks',status:'Opted Out',score:0.1},
+    {name:'Rahul Ahuja (REX)',role:'Senior Technical Consultant',manager:'Ruchita Shashikant Wakchoure',track:'Consumer Goods',batch:'Batch 1',duration:'3 weeks',status:'In Progress',score:0.3},
+    {name:'Mamta Sharma (TPM)',role:'Technical Consultant',manager:'Priyanka Gummuluru',track:'Consumer Goods',batch:'Existing Emp',duration:'3 weeks',status:'In Progress',score:0.6},
+    {name:'Naveen Kumar Polisetty (TPM)',role:'Senior Technical Consultant',manager:'Jay Ram Chandran',track:'Consumer Goods',batch:'New Hire',duration:'3 weeks',status:'In Progress',score:0.1},
+  ],
+  mcc: [
+    {manager:'Priyanka Gummuluru',name:'Aditya Gujalwar',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 3',l1Missing:''},
+    {manager:'Shilpakala Ramachandra',name:'Sakshi Peshne',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Suresh Nankani',name:'Sangeetha Shashidhar',designation:'QA Consultant',practice:'QA',level:'Level 1',l1Missing:''},
+    {manager:'Prabakaran Murugesan',name:'Shubham Dhanuka',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Prabakaran Murugesan',name:'Muskan Jain',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Prabakaran Murugesan',name:'Debak Sen',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Suresh Nankani',name:'Ansh Gupta',designation:'QA Consultant',practice:'QA',level:'Level 1',l1Missing:''},
+    {manager:'Navia Garg',name:'Prashant Kumar',designation:'Senior QA Consultant',practice:'QA',level:'Level 1',l1Missing:''},
+    {manager:'Priyanka Gummuluru',name:'Adwait Gupta',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Suresh Nankani',name:'Tanushree Sharma',designation:'QA Consultant',practice:'QA',level:'Level 2',l1Missing:''},
+    {manager:'Prabakaran Murugesan',name:'Deepak Kumar',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Suresh Nankani',name:'Ajit Kumar Rawani',designation:'Senior QA Consultant',practice:'QA',level:'Level 1',l1Missing:''},
+    {manager:'Suresh Nankani',name:'Venkata Sai Teja Bethineedi',designation:'QA Consultant',practice:'QA',level:'Level 2',l1Missing:''},
+    {manager:'Prabakaran Murugesan',name:'Sourav Jain',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Priyanka Gummuluru',name:'Prakhar Garg',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Shilpakala Ramachandra',name:'Rahul Jadhav',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Shilpakala Ramachandra',name:'Sri vigneshwar S',designation:'Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Shilpakala Ramachandra',name:'Gagandeep Singh',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1 - Minus 1',l1Missing:'Certified JavaScript Developer'},
+    {manager:'Abhishek Singh Solanki',name:'Vinay Kumar Todupunuri',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1',l1Missing:''},
+    {manager:'Navia Garg',name:'Shubham Dhirendra',designation:'Senior Technical Consultant',practice:'Core',level:'Level 1',l1Missing:''},
+    {manager:'Jay Ram Chandran',name:'Priyanka Gummuluru',designation:'Manager, Technical Consulting',practice:'Core',level:'Level 1 - Minus 1',l1Missing:'Certified JavaScript Developer'},
+    {manager:'Jay Ram Chandran',name:'Himanshu Sharma',designation:'Technical Architect',practice:'N/A',level:'—',l1Missing:''},
+    {manager:'Jay Ram Chandran',name:'Kanhaiya Pasoria',designation:'Technical Architect',practice:'TA',level:'Level 1 - Minus 2',l1Missing:'Platform Developer, App Builder, AI Associate, Agentforce Specialist'},
+    {manager:'Navia Garg',name:'Gaurav Singh',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1 - Minus 1',l1Missing:'Certified JavaScript Developer'},
+    {manager:'Ruchita Shashikant Wakchoure',name:'Vijay krishnaa Veerakumar',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1 - Minus 1',l1Missing:'Certified JavaScript Developer'},
+    {manager:'Priyanka Gummuluru',name:'Asif Raza',designation:'Senior Technical Consultant',practice:'Industries',level:'Level 1 - Minus 1',l1Missing:'Certified JavaScript Developer'},
+  ],
+};
+
+// ══════ EXCEL PARSER ══════
+
+function loadExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+      const sheets = wb.SheetNames;
+      function getSheet(name) {
+        const idx = sheets.findIndex(s => s.toLowerCase().includes(name.toLowerCase()));
+        if (idx < 0) return [];
+        return XLSX.utils.sheet_to_json(wb.Sheets[sheets[idx]], {header:1, defval:''});
+      }
+      function findHeaderRow(rows, keyword) {
+        return rows.findIndex(r => r.some(c => String(c).toLowerCase().includes(keyword.toLowerCase())));
+      }
+
+      // — Consultant Data (Sheet 1) —
+      const cRows = getSheet('Consultant data');
+      const cHdr = findHeaderRow(cRows, 'Sr No');
+      if (cHdr >= 0) {
+        DATA.consultants = [];
+        for (let i = cHdr+1; i < cRows.length; i++) {
+          const r = cRows[i];
+          if (!r[2]) continue;
+          const parseH = (v) => {
+            const s = String(v||'').toLowerCase();
+            if (s.includes('green')) return 'green';
+            if (s.includes('yellow')) return 'yellow';
+            if (s.includes('red')) return 'red';
+            if (s.includes('amber')) return 'amber';
+            if (s.includes('exempt')) return 'exempt';
+            return 'na';
+          };
+          DATA.consultants.push({no:r[0],manager:r[1],name:r[2],project:r[3],psa:parseH(r[4]),gdc:parseH(r[5])});
+        }
+      }
+
+      // — Utilization (Sheet 4) —
+      const uRows = getSheet('Utilization');
+      // quarterly summary (first few rows)
+      const uQtr = [];
+      for (let i = 0; i < Math.min(10, uRows.length); i++) {
+        const r = uRows[i];
+        if (String(r[0]).match(/^Q[1-4]/i) || String(r[0]).toLowerCase().includes('full year')) {
+          const util = parseFloat(String(r[2]).replace('%',''));
+          const attain = parseFloat(String(r[2]).match(/\(([0-9.]+)%\)/)?.[1] || 0);
+          if (!isNaN(util)) uQtr.push({q:r[0],status:r[1]||'',util,attain});
+        }
+      }
+      if (uQtr.length) DATA.utilQuarterly = uQtr;
+
+      // individual util
+      const uHdr = findHeaderRow(uRows, 'Employee Id');
+      if (uHdr >= 0) {
+        DATA.utilIndividual = [];
+        const h = uRows[uHdr].map(c => String(c).toLowerCase());
+        const ci = (k) => h.findIndex(c => c.includes(k));
+        for (let i = uHdr+1; i < uRows.length; i++) {
+          const r = uRows[i];
+          if (!r[ci('employee id')] && !r[0]) continue;
+          const p = (v) => parseFloat(String(v||'').replace('%','').replace(',','')) || 0;
+          DATA.utilIndividual.push({
+            id: String(r[0]),
+            name: r[1] || '',
+            practice: r[4] || '',
+            jobFamily: r[5] || '',
+            billable: p(r[6]),
+            target: p(r[9]),
+            attain: p(r[14]),
+            forecastAttain: p(r[25]),
+          });
+        }
+      }
+
+      // — Bench (Sheet 5) —
+      const bRows = getSheet('Bench');
+      const bHdr = findHeaderRow(bRows, 'Full Name');
+      if (bHdr >= 0) {
+        // find second occurrence (actual data header)
+        let bHdr2 = bRows.findIndex((r,i) => i > bHdr && r.some(c => String(c) === 'Full Name'));
+        if (bHdr2 < 0) bHdr2 = bHdr;
+        DATA.bench = [];
+        for (let i = bHdr2+1; i < bRows.length; i++) {
+          const r = bRows[i];
+          if (!r[1] || String(r[1]).toLowerCase().includes('loading')) continue;
+          const dateV = r[4];
+          let endDate = '';
+          if (dateV instanceof Date) endDate = dateV.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          else if (typeof dateV === 'number') {
+            const d = new Date(Math.round((dateV - 25569) * 86400 * 1000));
+            endDate = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          } else endDate = String(dateV);
+          DATA.bench.push({no:r[0],name:r[1],assignment:String(r[2]).split(' - '+r[1])[0],manager:r[3],endDate,grade:parseInt(r[5])||0});
+        }
+      }
+
+      // — Demand Supply (Sheet 9) —
+      const dRows = getSheet('Demand');
+      const mHdr = findHeaderRow(dRows, 'Months');
+      if (mHdr >= 0) {
+        const monthRow = dRows[mHdr];
+        const months = [];
+        for (let c = 1; c < monthRow.length; c += 2) { if (monthRow[c]) months.push(String(monthRow[c])); }
+        const roles = [], demand = [], supply = [], totD = [], totS = [], gap = [];
+        for (let i = mHdr+2; i < dRows.length; i++) {
+          const r = dRows[i];
+          const roleName = String(r[0]);
+          if (!roleName || roleName === 'CG') continue;
+          if (roleName === 'Total') { months.forEach((_,mi) => { totD.push(parseFloat(r[1+mi*2])||0); totS.push(parseFloat(r[2+mi*2])||0); }); continue; }
+          if (roleName === 'Gap') { months.forEach((_,mi) => gap.push(parseFloat(r[1+mi*2])||0)); continue; }
+          roles.push(roleName);
+          const d = [], s = [];
+          months.forEach((_,mi) => { d.push(parseFloat(r[1+mi*2])||0); s.push(parseFloat(r[2+mi*2])||0); });
+          demand.push(d); supply.push(s);
+        }
+        if (months.length) DATA.demandSupply = {months,roles,demand,supply,totDemand:totD,totSupply:totS,gap};
+      }
+
+      // — Presales (Sheet 10) —
+      const pRows = getSheet('Presales');
+      const pHdr = findHeaderRow(pRows, '#');
+      if (pHdr >= 0) {
+        DATA.presales = [];
+        for (let i = pHdr+1; i < pRows.length; i++) {
+          const r = pRows[i];
+          if (!r[3]) continue;
+          DATA.presales.push({no:r[0],customer:r[3],value:parseFloat(r[2])||0,region:r[5]||'',cloud:r[7]||'',stage:r[4]||'',quarter:r[12]||'',status:r[13]||'',arch:r[10]||''});
+        }
+      }
+
+      // — Enablement (Sheet 12) —
+      const enRows = getSheet('Enablement');
+      const enHdr = findHeaderRow(enRows, 'Practise');
+      if (enHdr >= 0) {
+        DATA.enablement = [];
+        for (let i = enHdr+1; i < enRows.length; i++) {
+          const r = enRows[i];
+          if (!r[1]) continue;
+          DATA.enablement.push({name:r[1],role:r[4]||'',manager:r[5]||'',track:r[8]||'',batch:r[7]||'',duration:r[9]||'',status:r[12]||'',score:parseFloat(r[13])||0});
+        }
+      }
+
+      // — MCC Levels (Sheet 3) —
+      const mccRows = getSheet('OLD MCC');
+      const mccHdr = findHeaderRow(mccRows, 'Manager');
+      if (mccHdr >= 0) {
+        DATA.mcc = [];
+        for (let i = mccHdr+1; i < mccRows.length; i++) {
+          const r = mccRows[i];
+          if (!r[1]) continue;
+          DATA.mcc.push({manager:r[0],name:r[1],designation:r[2],practice:r[3],level:r[4]||'—',l1Missing:r[5]||''});
+        }
+      }
+
+      document.getElementById('file-label').textContent = '✅ Loaded: ' + file.name + ' — ' + new Date().toLocaleTimeString();
+      renderAll();
+    } catch(err) {
+      document.getElementById('file-label').textContent = '❌ Error: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ══════ HELPERS ══════
+const C = ['#0176D3','#2E844A','#BA0517','#FF8000','#7B68EE','#4BC9F0','#C2631A','#032D60','#A87B00','#00C389'];
+const charts = {};
+function dc(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+function mc(id, cfg) { dc(id); charts[id] = new Chart(id, cfg); return charts[id]; }
+function hb(h) {
+  const m={green:['bg','🟢 Green'],yellow:['by','🟡 Yellow'],red:['br','🔴 Red'],amber:['ba','🟡 Amber'],exempt:['be','⚪ Exempt'],na:['bn','— N/A']};
+  const [cls,lbl]=m[h]||['bn',h]; return `<span class="badge ${cls}">${lbl}</span>`;
+}
+function sb(s) {
+  const m={'Completed':'bg','Deal Won':'bg','In-Progress':'by','Lost':'br','In Progress':'by','Opted Out':'br'};
+  return `<span class="badge ${m[s]||'bn'}">${s}</span>`;
+}
+function fv(n) { if(!n)return'—';if(n>=1e6)return'$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return'$'+(n/1e3).toFixed(0)+'K';return'$'+n.toLocaleString(); }
+function kpis(id, items) { document.getElementById(id).innerHTML = items.map(([label,val,sub])=>`<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-val">${val}</div><div class="kpi-sub">${sub}</div></div>`).join(''); }
+
+// ══════ RENDER ALL ══════
+function renderAll() {
+  renderOverview(); renderUtil(); renderBench(); renderDemand(); renderPresales(); renderEnablement(); renderMCC();
+}
+
+function renderOverview() {
+  const d = DATA;
+  const green = d.consultants.filter(c=>c.psa==='green').length;
+  const yellow = d.consultants.filter(c=>c.psa==='yellow').length;
+  const red = d.consultants.filter(c=>c.psa==='red').length;
+  kpis('kpi-overview',[
+    ['Total Consultants', d.consultants.length, 'Active on projects'],
+    ['Green Health', green, `${Math.round(green/d.consultants.length*100)}% of team`],
+    ['Yellow / At Risk', yellow, 'Needs attention'],
+    ['Red Health', red, 'Critical projects'],
+    ['On Bench (30d)', d.bench.length, 'Upcoming roll-offs'],
+  ]);
+  document.getElementById('cons-tbody').innerHTML = d.consultants.map(c=>`
+    <tr><td>${c.no}</td><td><strong>${c.name}</strong></td><td>${c.manager}</td><td>${hb(c.psa)}</td><td>${hb(c.gdc)}</td></tr>`).join('');
+
+  const counts = {Green:green,Yellow:yellow,Red:red,'Exempt/N/A':d.consultants.filter(c=>['exempt','na'].includes(c.psa)).length};
+  mc('healthPie',{type:'doughnut',data:{labels:Object.keys(counts),datasets:[{data:Object.values(counts),backgroundColor:['#2E844A','#FFD700','#BA0517','#a0aec0'],borderWidth:2,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}}}}});
+  mc('qtrChart',{type:'bar',data:{labels:d.utilQuarterly.map(q=>q.q),datasets:[
+    {label:'Utilization %',data:d.utilQuarterly.map(q=>q.util),backgroundColor:'rgba(1,118,211,0.7)',borderRadius:5,yAxisID:'y'},
+    {label:'Attainment %',data:d.utilQuarterly.map(q=>q.attain),type:'line',borderColor:'#2E844A',backgroundColor:'transparent',pointRadius:5,tension:.3,yAxisID:'y2'},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#f0f4f8'}},y2:{beginAtZero:true,position:'right',ticks:{callback:v=>v+'%'},grid:{display:false}},x:{grid:{display:false}}}}});
+}
+
+function renderUtil() {
+  const d = DATA;
+  const q1 = d.utilQuarterly[0]||{};
+  kpis('kpi-util',[
+    ['Q1 Actual',q1.util+'%','Attainment '+q1.attain+'%'],
+    ['Q2 Actual+Forecast',(d.utilQuarterly[1]||{}).util+'%','Attainment '+(d.utilQuarterly[1]||{}).attain+'%'],
+    ['Q3 Forecast',(d.utilQuarterly[2]||{}).util+'%','Attainment '+(d.utilQuarterly[2]||{}).attain+'%'],
+    ['Full Year Forecast',(d.utilQuarterly[4]||d.utilQuarterly[3]||{}).util+'%','Total forecast'],
+  ]);
+  mc('utilQtrBar',{type:'bar',data:{labels:d.utilQuarterly.map(q=>q.q),datasets:[{label:'Utilization %',data:d.utilQuarterly.map(q=>q.util),backgroundColor:d.utilQuarterly.map(q=>q.util>=74?'rgba(46,132,74,0.7)':'rgba(186,5,23,0.7)'),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#f0f4f8'}},x:{grid:{display:false}}}}});
+  mc('attainChart',{type:'line',data:{labels:d.utilQuarterly.map(q=>q.q),datasets:[{label:'Attainment %',data:d.utilQuarterly.map(q=>q.attain),borderColor:'#0176D3',backgroundColor:'rgba(1,118,211,0.1)',fill:true,tension:.4,pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%'},grid:{color:'#f0f4f8'}},x:{grid:{display:false}}}}});
+
+  document.getElementById('util-bars').innerHTML = d.utilIndividual.map(u=>{
+    const pct = Math.min(u.billable,100);
+    const color = u.billable>=u.target?'#2E844A':'#BA0517';
+    const tp = Math.min(u.target,100);
+    return `<div class="util-row"><span class="util-name">${u.name}</span><div class="util-bar"><div class="util-fill" style="width:${pct}%;background:${color}"></div><div class="util-tline" style="left:${tp}%"></div></div><span class="util-pct">${u.billable}%</span></div>`;
+  }).join('');
+  document.getElementById('util-tbody').innerHTML = d.utilIndividual.map(u=>`
+    <tr><td>${u.id}</td><td><strong>${u.name}</strong></td><td>${u.practice}</td><td>${u.jobFamily}</td>
+    <td><strong>${u.billable}%</strong></td><td>${u.target}%</td>
+    <td><span class="badge ${u.attain>=100?'bg':u.attain>=75?'by':'br'}">${u.attain}%</span></td>
+    <td>${u.forecastAttain}%</td></tr>`).join('');
+}
+
+function renderBench() {
+  const d = DATA;
+  const grades = {};
+  d.bench.forEach(b=>grades[b.grade]=(grades[b.grade]||0)+1);
+  kpis('kpi-bench',[
+    ['Total Bench (30d)', d.bench.length, 'Upcoming roll-offs'],
+    ['Grade 5', grades[5]||0, 'TC / QA'],
+    ['Grade 6', grades[6]||0, 'Senior Consultants'],
+    ['Grade 7+', (grades[7]||0)+(grades[8]||0), 'Managers & above'],
+  ]);
+  mc('benchGrade',{type:'doughnut',data:{labels:Object.keys(grades).map(g=>'Grade '+g),datasets:[{data:Object.values(grades),backgroundColor:C,borderWidth:2,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}}}}});
+  const months = {'Apr':0,'May':0,'Jun':0};
+  d.bench.forEach(b=>{ const m=String(b.endDate).slice(0,3); if(months[m]!==undefined) months[m]++; });
+  mc('benchTimeline',{type:'bar',data:{labels:['April 2026','May 2026','June 2026'],datasets:[{label:'Roll-offs',data:Object.values(months),backgroundColor:['rgba(186,5,23,0.6)','rgba(255,128,0,0.6)','rgba(46,132,74,0.6)'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f0f4f8'}},x:{grid:{display:false}}}}});
+  document.getElementById('bench-tbody').innerHTML = d.bench.map(b=>`
+    <tr><td>${b.no}</td><td><strong>${b.name}</strong></td><td>${b.assignment}</td><td>${b.manager}</td><td>${b.endDate}</td><td><span class="badge bb">Grade ${b.grade}</span></td></tr>`).join('');
+}
+
+function renderDemand() {
+  const ds = DATA.demandSupply;
+  const maxD = Math.max(...ds.totDemand);
+  const maxDIdx = ds.totDemand.indexOf(maxD);
+  const minGap = Math.min(...ds.gap);
+  const minGapIdx = ds.gap.indexOf(minGap);
+  const maxSurplus = Math.max(...ds.gap);
+  kpis('kpi-demand',[
+    [`${ds.months[maxDIdx]} Total Demand`, maxD, 'Highest demand month'],
+    [`${ds.months[maxDIdx]} Supply`, ds.totSupply[maxDIdx], `Gap of ${ds.gap[maxDIdx]}`],
+    [`${ds.months[minGapIdx]} Gap`, minGap, 'Critical supply gap'],
+    [`Surplus Month`, maxSurplus>0?'+'+maxSurplus:'None', maxSurplus>0?ds.months[ds.gap.indexOf(maxSurplus)]:'Supply covers demand'],
+  ]);
+  mc('dsChart',{type:'bar',data:{labels:ds.months,datasets:[{label:'Demand',data:ds.totDemand,backgroundColor:'rgba(186,5,23,0.6)',borderRadius:4},{label:'Supply',data:ds.totSupply,backgroundColor:'rgba(46,132,74,0.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,grid:{color:'#f0f4f8'},ticks:{stepSize:5}},x:{grid:{display:false}}}}});
+  mc('gapChart',{type:'bar',data:{labels:ds.months,datasets:[{label:'Gap',data:ds.gap,backgroundColor:ds.gap.map(g=>g>=0?'rgba(46,132,74,0.7)':'rgba(186,5,23,0.7)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0f4f8'}},x:{grid:{display:false}}}}});
+
+  let html = `<div style="overflow-x:auto"><table class="ds-table"><thead><tr><th style="text-align:left">Role</th>${ds.months.map(m=>`<th colspan="2">${m}</th>`).join('')}</tr><tr><th style="text-align:left">—</th>${ds.months.map(()=>'<th>D</th><th>S</th>').join('')}</tr></thead><tbody>`;
+  ds.roles.forEach((r,ri)=>{
+    html+=`<tr><td class="rc">${r}</td>`;
+    ds.months.forEach((_,mi)=>{ html+=`<td class="dem">${ds.demand[ri]?.[mi]||'—'}</td><td class="sup">${ds.supply[ri]?.[mi]||'—'}</td>`; });
+    html+='</tr>';
+  });
+  html+=`<tr style="font-weight:700;background:#F3F7FF"><td class="rc">Total</td>${ds.months.map((_,mi)=>`<td class="dem">${ds.totDemand[mi]}</td><td class="sup">${ds.totSupply[mi]}</td>`).join('')}</tr>`;
+  html+=`<tr style="font-weight:700"><td class="rc">Gap</td>${ds.months.map((_,mi)=>{ const g=ds.gap[mi]; return `<td colspan="2" class="${g>0?'gp':g<0?'gn':'gz'}">${g>0?'+'+g:g}</td>`; }).join('')}</tr>`;
+  html+=`</tbody></table></div>`;
+  document.getElementById('ds-table-wrap').innerHTML = html;
+}
+
+function renderPresales() {
+  const d = DATA.presales;
+  const won = d.filter(p=>p.status==='Deal Won').length;
+  const inProg = d.filter(p=>p.status==='In-Progress').length;
+  const totalVal = d.reduce((s,p)=>s+p.value,0);
+  kpis('kpi-presales',[
+    ['Total Opps', d.length, 'Tracked this quarter'],
+    ['Deals Won', won, won?d.filter(p=>p.status==='Deal Won').map(p=>p.customer.split(' ')[0]).join(', '):''],
+    ['In Progress', inProg, 'Active pursuits'],
+    ['Known Pipeline', fv(totalVal), 'Quantified value'],
+  ]);
+  const named = d.filter(p=>p.value>0);
+  mc('presalesBar',{type:'bar',data:{labels:named.map(p=>p.customer.length>20?p.customer.slice(0,18)+'…':p.customer),datasets:[{label:'Value',data:named.map(p=>p.value),backgroundColor:named.map(p=>p.status==='Deal Won'?'rgba(46,132,74,0.7)':p.status==='Lost'?'rgba(186,5,23,0.7)':'rgba(1,118,211,0.7)'),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fv(ctx.raw)}}},scales:{y:{ticks:{callback:v=>fv(v)},grid:{color:'#f0f4f8'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  const regMap = {};
+  d.forEach(p=>regMap[p.region]=(regMap[p.region]||0)+1);
+  mc('regionPie',{type:'doughnut',data:{labels:Object.keys(regMap),datasets:[{data:Object.values(regMap),backgroundColor:C,borderWidth:2,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}}}}});
+  document.getElementById('presales-tbody').innerHTML = d.map(p=>`
+    <tr><td>${p.no}</td><td><strong>${p.customer}</strong></td><td>${fv(p.value)}</td><td>${p.region}</td><td><span class="badge bb">${p.cloud}</span></td><td>${p.stage}</td><td>${p.quarter}</td><td>${sb(p.status)}</td><td>${p.arch}</td></tr>`).join('');
+}
+
+function renderEnablement() {
+  const d = DATA.enablement;
+  const completed = d.filter(e=>e.status==='Completed').length;
+  const inProg = d.filter(e=>e.status==='In Progress').length;
+  const opted = d.filter(e=>e.status==='Opted Out').length;
+  kpis('kpi-enable',[
+    ['Total Enrolled', d.length, 'Across all batches'],
+    ['Completed', completed, Math.round(completed/d.length*100)+'% completion'],
+    ['In Progress', inProg, 'Active learning'],
+    ['Opted Out', opted, 'Workload conflicts'],
+  ]);
+  const stMap = {'Completed':completed,'In Progress':inProg,'Opted Out':opted};
+  mc('enableStatus',{type:'doughnut',data:{labels:Object.keys(stMap),datasets:[{data:Object.values(stMap),backgroundColor:['#2E844A','#0176D3','#BA0517'],borderWidth:2,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:12},boxWidth:14,padding:12}}}}});
+  const trackMap = {};
+  d.forEach(e=>trackMap[e.track]=(trackMap[e.track]||0)+1);
+  const st = Object.entries(trackMap).sort((a,b)=>b[1]-a[1]);
+  mc('enableTrack',{type:'bar',data:{labels:st.map(t=>t[0]),datasets:[{label:'Enrolled',data:st.map(t=>t[1]),backgroundColor:C.map(c=>c+'bb'),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f0f4f8'}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}}}}});
+  document.getElementById('enable-tbody').innerHTML = d.map(e=>`
+    <tr><td><strong>${e.name}</strong></td><td>${e.role}</td><td>${e.manager}</td><td><span class="badge bb">${e.track}</span></td><td>${e.batch}</td><td>${e.duration}</td><td>${sb(e.status)}</td>
+    <td><div class="prog-bar"><div class="prog-fill" style="width:${e.score*100}%;background:${e.score>=1?'#2E844A':e.score>=0.7?'#0176D3':'#BA0517'}"></div></div><small style="color:#6b7a99">${Math.round(e.score*100)}%</small></td></tr>`).join('');
+}
+
+function renderMCC() {
+  const d = DATA.mcc;
+  const lvl1 = d.filter(m=>m.level==='Level 1').length;
+  const lvl2 = d.filter(m=>m.level==='Level 2').length;
+  const lvl3 = d.filter(m=>m.level==='Level 3').length;
+  const below = d.filter(m=>m.level.includes('Minus')).length;
+  kpis('kpi-mcc',[
+    ['Level 1 Ready', lvl1, 'Achieved Level 1'],
+    ['Level 2 Ready', lvl2, 'Achieved Level 2'],
+    ['Level 3+', lvl3, 'Advanced certified'],
+    ['Below Level 1', below, 'Missing certs to qualify'],
+  ]);
+  const lMap = {'Level 3':0,'Level 2':0,'Level 1':0,'L1 Minus 1':0,'L1 Minus 2+':0,'—':0};
+  d.forEach(m=>{
+    if(m.level.includes('Minus 2')||m.level.includes('More')) lMap['L1 Minus 2+']++;
+    else if(m.level.includes('Minus 1')) lMap['L1 Minus 1']++;
+    else if(m.level==='Level 3') lMap['Level 3']++;
+    else if(m.level==='Level 2') lMap['Level 2']++;
+    else if(m.level==='Level 1') lMap['Level 1']++;
+    else lMap['—']++;
+  });
+  mc('mccLevel',{type:'bar',data:{labels:Object.keys(lMap),datasets:[{label:'Consultants',data:Object.values(lMap),backgroundColor:['#7B68EE','#2E844A','#0176D3','#FF8000','#BA0517','#a0aec0'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f0f4f8'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  const misMap = {};
+  d.forEach(m=>{ if(m.l1Missing) m.l1Missing.split(',').forEach(c=>{ const t=c.trim(); if(t) misMap[t]=(misMap[t]||0)+1; }); });
+  const topM = Object.entries(misMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mc('missingCerts',{type:'bar',data:{labels:topM.map(t=>t[0].replace('Certified ','').replace(' Accredited Professional','').slice(0,28)),datasets:[{label:'# Missing',data:topM.map(t=>t[1]),backgroundColor:'rgba(186,5,23,0.6)',borderRadius:5}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f0f4f8'}},y:{grid:{display:false},ticks:{font:{size:9}}}}}});
+  document.getElementById('mcc-tbody').innerHTML = d.map(m=>{
+    const cls=m.level.includes('Minus')?'br':m.level==='Level 3'?'bp':m.level==='Level 2'?'bb':'bg';
+    return `<tr><td>${m.manager}</td><td><strong>${m.name}</strong></td><td>${m.designation}</td><td>${m.practice}</td><td><span class="badge ${cls}">${m.level||'—'}</span></td><td style="color:#BA0517;font-size:.75rem">${m.l1Missing||'—'}</td></tr>`;
+  }).join('');
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// init
+renderAll();
+</script>
+</body>
+</html>
